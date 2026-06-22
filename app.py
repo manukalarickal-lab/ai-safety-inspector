@@ -55,13 +55,13 @@ st.markdown("Upload a photo of a worksite or potential hazard, and the AI will g
 if not api_key:
     st.warning("⚠️ API Key not found! Please open the `.env` file in your folder and paste your Gemini API key.")
 
-tab1, tab2 = st.tabs(["📸 Use Camera", "📁 Upload File"])
-with tab1:
-    camera_file = st.camera_input("Take a photo using your device camera")
-with tab2:
-    uploaded_file = st.file_uploader("Upload an existing photo...", type=["jpg", "jpeg", "png"])
+input_method = st.radio("Choose input method:", ["📁 Upload File", "📸 Use Camera"], horizontal=True)
 
-final_file = camera_file or uploaded_file
+final_file = None
+if input_method == "📁 Upload File":
+    final_file = st.file_uploader("Upload or take a photo...", type=["jpg", "jpeg", "png"])
+else:
+    final_file = st.camera_input("Take a photo using your device camera")
 
 if final_file is not None:
     # Display the uploaded image
