@@ -2,6 +2,8 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import os
+import time
+import threading
 from dotenv import load_dotenv
 
 # Load environment variables (API key)
@@ -37,6 +39,18 @@ Please provide a simple and direct analysis formatted exactly like this:
 List all hazards found in the image sequentially using the numbered format above. Keep descriptions short, simple, and easy to read on a mobile phone.
 """
 
+@st.cache_resource
+def get_queue_state():
+    return {
+        "lock": threading.Lock(),
+        "waiting": 0
+    }
+
+queue_state = get_queue_state()
+
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
+
 # Streamlit App UI
 st.set_page_config(page_title="AI Hazard Scanner", page_icon="⚠️", layout="centered")
 
@@ -67,9 +81,9 @@ input_method = st.radio("Choose input method:", ["📁 Upload File", "📸 Use C
 
 final_file = None
 if input_method == "📁 Upload File":
-    final_file = st.file_uploader("Upload or take a photo...", type=["jpg", "jpeg", "png"])
+    final_file = st.file_uploader("Upload or take a photo...", type=["jpg", "jpeg", "png"], key=f"upload_{st.session_state['uploader_key']}")
 else:
-    final_file = st.camera_input("Take a photo using your device camera")
+    final_file = st.camera_input("Take a photo using your device camera", key=f"camera_{st.session_state['uploader_key']}")
 
 if final_file is not None:
     # Display the uploaded image
@@ -80,17 +94,38 @@ if final_file is not None:
         if not api_key:
             st.error("Cannot analyze: Missing API Key.")
         else:
-            with st.spinner("Analyzing image for safety hazards..."):
+            queue_state["waiting"] += 1
+            try:
+                queue_placeholder = st.empty()
+                acquired = False
+                while not acquired:
+                    if queue_state["lock"].acquire(blocking=False):
+                        acquired = True
+                    else:
+                        queue_placeholder.warning(f"🚦 Traffic is high! People in queue: {queue_state['waiting'] - 1}. Please wait...")
+                        time.sleep(2)
                 try:
-                    # Initialize the model
-                    model = genai.GenerativeModel('gemini-3.5-flash')
-                    
-                    # Generate the response
-                    response = model.generate_content([HSE_PROMPT, image])
-                    
-                    # Display the result
-                    st.success("Analysis Complete!")
-                    st.markdown("---")
-                    st.markdown(response.text)
-                except Exception as e:
-                    st.error(f"An error occurred during analysis: {e}")
+                    queue_placeholder.empty()
+                    with st.spinner("Analyzing image for safety hazards..."):
+                        try:
+                            # Initialize the model
+                            model = genai.GenerativeModel('gemini-3.5-flash')
+                            
+                            # Generate the response
+                            response = model.generate_content([HSE_PROMPT, image])
+                            
+                            # Display the result
+                            st.success("Analysis Complete!")
+                            st.markdown("---")
+                            st.markdown(response.text)
+                            st.markdown("---")
+                        except Exception as e:
+                            st.error(f"An error occurred during analysis: {e}")
+                finally:
+                    queue_state["lock"].release()
+            finally:
+                queue_state["waiting"] -= 1
+
+    if st.button("Scan Another Hazard", use_container_width=True):
+        st.session_state["uploader_key"] += 1
+        st.rerun()
