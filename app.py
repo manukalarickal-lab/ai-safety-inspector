@@ -16,17 +16,25 @@ else:
 
 # Define the formal HSE prompt
 HSE_PROMPT = """
-Act as a formal and highly rigorous Health, Safety, and Environment (HSE) Inspector. Review the attached image carefully. 
+Act as a formal Health, Safety, and Environment (HSE) Inspector. Review the attached image carefully. 
 
-Please provide a formal analysis formatted exactly like this:
+Please provide a simple and direct analysis formatted exactly like this:
 
 **HAZARD IDENTIFICATION REPORT**
-*   **Hazard:** [Name the specific hazard seen in the image]
-*   **Risk Level:** [Low / Medium / High]
-*   **Immediate Control Measure:** [What should be done right now to secure the area]
-*   **Long-Term Preventative Action:** [How to prevent this from happening again in the future]
 
-If you see multiple hazards, list them out sequentially using the format above. Keep your tone strictly professional and objective.
+**1. [Name the specific hazard]**
+*   **Risk Level:** [Low / Medium / High]
+*   **Control Measures:**
+    *   [Immediate control measure to secure the area]
+    *   [Long-term preventative action]
+
+**2. [Name the next hazard]**
+*   **Risk Level:** [Low / Medium / High]
+*   **Control Measures:**
+    *   [Immediate control measure to secure the area]
+    *   [Long-term preventative action]
+
+List all hazards found in the image sequentially using the numbered format above. Keep descriptions short, simple, and easy to read on a mobile phone.
 """
 
 # Streamlit App UI
